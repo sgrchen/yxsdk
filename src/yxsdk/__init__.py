@@ -1,5 +1,8 @@
-from pathlib import Path
-__version__ = (Path(__file__).parent.parent / "version.txt").read_text().strip()
+from importlib.metadata import version as _pkg_version, PackageNotFoundError as _PackageNotFoundError
+try:
+    __version__ = _pkg_version("yxsdk")
+except _PackageNotFoundError:
+    __version__ = "unknown"
 
 from .mysql_client import MysqlClient
 from .redis_client import RedisClient
