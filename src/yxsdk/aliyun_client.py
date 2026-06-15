@@ -93,8 +93,11 @@ class AliyunClient:
         }
         return "&".join(f"{k}={v}" for k, v in sorted(encoded.items()))
 
-    def _request(self, action: str, params: dict) -> dict:
+    def _request(self, action: str, params: dict, endpoint: str = None, api_version: str = None) -> dict:
         """发送阿里云 RPC 风格 OpenAPI 请求（参数通过查询字符串传递）"""
+        endpoint = endpoint or self.endpoint
+        api_version = api_version or self.api_version
+
         # 请求时间（UTC）
         timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -104,9 +107,9 @@ class AliyunClient:
 
         # 请求头
         headers = {
-            "host": self.endpoint,
+            "host": endpoint,
             "x-acs-action": action,
-            "x-acs-version": self.api_version,
+            "x-acs-version": api_version,
             "x-acs-date": timestamp,
             "x-acs-signature-nonce": hashlib.md5(
                 timestamp.encode("utf-8")
@@ -124,7 +127,7 @@ class AliyunClient:
         )
 
         # 发送请求
-        url = f"https://{self.endpoint}/?" + canonical_query_string
+        url = f"https://{endpoint}/?" + canonical_query_string
         response = requests.post(url, headers=headers)
         if not response.text:
             raise ValueError(
@@ -155,4 +158,43 @@ class AliyunClient:
         if template_param:
             params["TemplateParam"] = json.dumps(template_param)
         return self._request("SendSms", params)
+
+    def send_email(
+        self,
+        account_name: str,
+        to_address: str,
+        subject: str,
+        html_body: str = None,
+        text_body: str = None,
+        reply_to_address: bool = False,
+    ) -> dict:
+        """
+        发送单条邮件（阿里云邮件推送 DirectMail）
+        :param account_name: 发信地址（控制台配置的发信账号）
+        :param to_address: 收件人邮箱地址
+        :param subject: 邮件主题
+        :param html_body: HTML 格式邮件正文（与 text_body 二选一）
+        :param text_body: 纯文本格式邮件正文（与 html_body 二选一）
+        :param reply_to_address: 是否使用发信账号的回信地址，默认 False
+        :return: API 返回的 JSON
+        """
+        if not html_body and not text_body:
+            raise ValueError("html_body 和 text_body 至少提供一个")
+        params = {
+            "AccountName": account_name,
+            "AddressType": 1,
+            "ReplyToAddress": "true" if reply_to_address else "false",
+            "ToAddress": to_address,
+            "Subject": subject,
+        }
+        if html_body:
+            params["HtmlBody"] = html_body
+        else:
+            params["TextBody"] = text_body
+        return self._request(
+            "SingleSendMail",
+            params,
+            endpoint="dm.aliyuncs.com",
+            api_version="2015-11-23",
+        )
 

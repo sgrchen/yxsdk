@@ -153,20 +153,32 @@ print(result["response"])
 
 ### AliyunClient
 
-Aliyun SMS service client using V3 HMAC-SHA256 signature.
+Aliyun service client using V3 HMAC-SHA256 signature. Supports SMS and email (DirectMail).
 
 ```python
 from yxsdk import AliyunClient
 
-sms = AliyunClient(
+client = AliyunClient(
     access_key_id="YOUR_KEY_ID",
     access_key_secret="YOUR_SECRET",
 )
-sms.send_sms(
+
+# Send SMS
+client.send_sms(
     phone_numbers="138xxxxxxxx",
     sign_name="MySign",
     template_code="SMS_12345678",
     template_param={"code": "123456"},
+)
+
+# Send single email (DirectMail)
+client.send_email(
+    account_name="noreply@example.com",
+    to_address="user@example.com",
+    subject="测试邮件",
+    html_body="<h1>Hello</h1>",
+    # text_body="Hello",  # 纯文本正文（与 html_body 二选一）
+    reply_to_address=False,
 )
 ```
 
