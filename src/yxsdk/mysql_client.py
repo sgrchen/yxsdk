@@ -61,6 +61,11 @@ class MysqlClient:
     def _ensure_connected(self):
         if not self._db or (time.time() - self._last_use_time > self._max_idle_time):
             self.reconnect()
+        else:
+            try:
+                self._db.ping(reconnect=True)
+            except Exception:
+                self.reconnect()
         self._last_use_time = time.time()
 
     def _cursor(self):
